@@ -3689,6 +3689,7 @@ IMXUartSetHandflow (
 
         DeviceContextPtr->CurrentFlowReplace = LineControlPtr->FlowReplace;
 
+        // NIONTIVEFIX
         if (dtrControl)
         {
             interruptContextPtr->UfcrCopy |= IMX_UART_UFCR_DCEDTE;
@@ -4059,10 +4060,18 @@ IMXUartIoctlGetHandflow (
     }
 
     WdfInterruptAcquireLock(DeviceContextPtr->WdfInterrupt);
+    const ULONG ufcr = DeviceContextPtr->InterruptContextPtr->UfcrCopy;
     const ULONG ucr2 = DeviceContextPtr->InterruptContextPtr->Ucr2Copy;
     WdfInterruptReleaseLock(DeviceContextPtr->WdfInterrupt);
 
     *outputBufferPtr = SERIAL_HANDFLOW();
+
+    //
+    // Check if DTR is enabled 
+    //
+    if ((ufcr & IMX_UART_UFCR_DCEDTE) != 0) {
+        outputBufferPtr->ControlHandShake |= SERIAL_DTR_CONTROL;
+    }
 
     //
     // If the Ignore RTS bit (which is really the Ignore CTS bit) is
