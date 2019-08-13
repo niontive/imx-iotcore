@@ -4064,8 +4064,8 @@ IMXUartIoctlGetHandflow (
     }
 
     WdfInterruptAcquireLock(DeviceContextPtr->WdfInterrupt);
-    const ULONG ufcr = DeviceContextPtr->InterruptContextPtr->UfcrCopy;
     const ULONG ucr2 = DeviceContextPtr->InterruptContextPtr->Ucr2Copy;
+    const ULONG ucr3 = DeviceContextPtr->InterruptContextPtr->Ucr3Copy;
     WdfInterruptReleaseLock(DeviceContextPtr->WdfInterrupt);
 
     *outputBufferPtr = SERIAL_HANDFLOW();
@@ -4073,7 +4073,7 @@ IMXUartIoctlGetHandflow (
     //
     // Check if DTR is enabled 
     //
-    if ((ufcr & IMX_UART_UFCR_DCEDTE) != 0) {
+    if ((ucr3 & IMX_UART_UCR3_DSR) != 0) {
         outputBufferPtr->ControlHandShake |= SERIAL_DTR_CONTROL;
     }
 
