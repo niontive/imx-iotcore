@@ -4426,6 +4426,10 @@ IMXUartIoctlGetDtrRts (
 
     ULONG mask = 0;
 
+    if ((InterruptContextPtr->UfcrCopy & IMX_UART_UFCR_DCEDTE) != 0) {
+        mask |= SERIAL_DTR_STATE;
+    }
+
     if ((interruptContextPtr->Ucr2Copy & IMX_UART_UCR2_CTS) != 0) {
         mask |= SERIAL_RTS_STATE;
     }
