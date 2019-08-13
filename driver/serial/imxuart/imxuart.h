@@ -738,16 +738,10 @@ IMXUartIoctlGetModemControl (
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-IMXUartIoctlSetDtr (
+IMXUartIoctlSetClrDtr (
     const IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
-    WDFREQUEST WdfRequest
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-IMXUartIoctlClrDtr (
-    const IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
-    WDFREQUEST WdfRequest
+    WDFREQUEST WdfRequest,
+    bool DtrOn
     );
 
 //

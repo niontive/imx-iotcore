@@ -801,12 +801,13 @@ IMXUartEvtSerCx2Control (
         IMXUartIoctlGetModemControl(deviceContextPtr, WdfRequest);
         return STATUS_SUCCESS;
     
-    case IOCTL_SERIAL_SET_DTR:
-        IMXUartIoctlSetDtr(deviceContextPtr, WdfRequest);
-        return STATUS_SUCCESS;
-    
+    case IOCTL_SERIAL_SET_DTR: __fallthrough;
     case IOCTL_SERIAL_CLR_DTR:
-        IMXUartIoctlClrDtr(deviceContextPtr, WdfRequest);
+        IMXUartIoctlSetClrDtr(
+            deviceContextPtr,
+            WdfRequest,
+            IoControlCode == IOCTL_SERIAL_SET_DTR);
+
         return STATUS_SUCCESS;
 
     case IOCTL_SERIAL_RESET_DEVICE: __fallthrough;
@@ -4546,9 +4547,10 @@ IMXUartIoctlGetModemControl (
 
 _Use_decl_annotations_
 void
-IMXUartIoctlSetDtr (
+IMXUartIoctlSetClrDtr (
     const IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
-    WDFREQUEST WdfRequest
+    WDFREQUEST WdfRequest,
+    bool DtrOn
     )
 {
     IMX_UART_INTERRUPT_CONTEXT* interruptContextPtr =
@@ -4570,43 +4572,11 @@ IMXUartIoctlSetDtr (
         return;
     }
 
-    InterruptContextPtr->Ucr3Copy |= IMX_UART_UCR3_DSR;
-
-    WRITE_REGISTER_NOFENCE_ULONG(
-        &interruptContextPtr->RegistersPtr->Ucr3,
-        interruptContextPtr->Ucr3Copy);
-
-    WdfInterruptReleaseLock(interruptContextPtr->WdfInterrupt);
-    WdfRequestComplete(WdfRequest, STATUS_SUCCESS);
-}
-
-_Use_decl_annotations_
-void
-IMXUartIoctlClrDtr (
-    const IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
-    WDFREQUEST WdfRequest
-    )
-{
-    IMX_UART_INTERRUPT_CONTEXT* interruptContextPtr =
-            DeviceContextPtr->InterruptContextPtr;
-
-    WdfInterruptAcquireLock(interruptContextPtr->WdfInterrupt);
-
-    //
-    // Only allowed when DTE mode is enabled
-    //
-    if ((interruptContextPtr->UfcrCopy & IMX_UART_UFCR_DCEDTE) == 0) {
-        WdfInterruptReleaseLock(interruptContextPtr->WdfInterrupt);
-        IMX_UART_LOG_ERROR(
-            "Attempted to set state of DTR pin when manual DTR control is not enabled. "
-            "(interruptContextPtr->UfcrCopy = 0x%lx)",
-            interruptContextPtr->UfcrCopy);
-
-        WdfRequestComplete(WdfRequest, STATUS_INVALID_PARAMETER);
-        return;
+    if (DtrOn) {
+        interruptContextPtr->Ucr3Copy |= IMX_UART_UCR3_DSR;
+    } else {
+        interruptContextPtr->Ucr3Copy &= ~IMX_UART_UCR3_DSR;
     }
-
-    InterruptContextPtr->Ucr3Copy &= ~(IMX_UART_UCR3_DSR);
 
     WRITE_REGISTER_NOFENCE_ULONG(
         &interruptContextPtr->RegistersPtr->Ucr3,
