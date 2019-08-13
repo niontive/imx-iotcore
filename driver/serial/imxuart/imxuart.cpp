@@ -4146,6 +4146,7 @@ IMXUartIoctlGetProperties (
 
     outputBufferPtr->ProvSubType = SERIAL_SP_RS232;
     outputBufferPtr->ProvCapabilities =
+        SERIAL_PCF_DTRDSR |
         SERIAL_PCF_RTSCTS |
         SERIAL_PCF_PARITY_CHECK |
         SERIAL_PCF_TOTALTIMEOUTS |
