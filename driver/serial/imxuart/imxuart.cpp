@@ -4523,6 +4523,10 @@ IMXUartIoctlGetModemControl (
 
     ULONG mcr = 0;
 
+    if ((interruptContextPtr->Ucr3Copy & IMX_UART_UCR3_DSR) != 0) {
+        mcr |= SERIAL_MCR_DTR;
+    }
+
     if ((interruptContextPtr->Ucr2Copy & IMX_UART_UCR2_CTS) != 0) {
         mcr |= SERIAL_MCR_RTS;
     }
