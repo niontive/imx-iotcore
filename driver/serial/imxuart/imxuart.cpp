@@ -800,6 +800,10 @@ IMXUartEvtSerCx2Control (
     case IOCTL_SERIAL_GET_MODEM_CONTROL:
         IMXUartIoctlGetModemControl(deviceContextPtr, WdfRequest);
         return STATUS_SUCCESS;
+    
+    case IOCTL_SERIAL_SET_DTR:
+        IMXUartIoctlSetDtr(deviceContextPtr, WdfRequest);
+        return STATUS_SUCCESS;
 
     case IOCTL_SERIAL_RESET_DEVICE: __fallthrough;
     case IOCTL_SERIAL_SET_QUEUE_SIZE: __fallthrough;
@@ -4536,6 +4540,42 @@ IMXUartIoctlGetModemControl (
         WdfRequest,
         STATUS_SUCCESS,
         sizeof(*outputBufferPtr));
+}
+
+_Use_decl_annotations_
+void
+IMXUartIoctlSetDtr (
+    const IMX_UART_DEVICE_CONTEXT* DeviceContextPtr,
+    WDFREQUEST WdfRequest
+    )
+{
+    IMX_UART_INTERRUPT_CONTEXT* interruptContextPtr =
+            DeviceContextPtr->InterruptContextPtr;
+
+    WdfInterruptAcquireLock(interruptContextPtr->WdfInterrupt);
+
+    //
+    // Only allowed when DTE mode is enabled
+    //
+    if ((interruptContextPtr->UfcrCopy & IMX_UART_UFCR_DCEDTE) == 0) {
+        WdfInterruptReleaseLock(interruptContextPtr->WdfInterrupt);
+        IMX_UART_LOG_ERROR(
+            "Attempted to set state of DTR pin when manual DTR control is not enabled. "
+            "(interruptContextPtr->UfcrCopy = 0x%lx)",
+            interruptContextPtr->UfcrCopy);
+
+        WdfRequestComplete(WdfRequest, STATUS_INVALID_PARAMETER);
+        return;
+    }
+
+    InterruptContextPtr->Ucr3Copy |= IMX_UART_UCR3_DSR;
+
+    WRITE_REGISTER_NOFENCE_ULONG(
+        &interruptContextPtr->RegistersPtr->Ucr3,
+        interruptContextPtr->Ucr3Copy);
+
+    WdfInterruptReleaseLock(interruptContextPtr->WdfInterrupt);
+    WdfRequestComplete(WdfRequest, STATUS_SUCCESS);
 }
 
 _Use_decl_annotations_
