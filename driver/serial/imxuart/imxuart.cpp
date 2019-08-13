@@ -3529,14 +3529,35 @@ IMXUartSetHandflow (
     const SERIAL_HANDFLOW* LineControlPtr
     )
 {
-    ULONG setMask = 0;
-    ULONG clearMask = 0;
+    // NIONTIVEFIX
+    bool dtrControl = false;
+
+    ULONG SetMask = 0;
+    ULONG ClearMask = 0;
 
     //
     // Handle output flow control setting. The transmitter on this UART can
     // optionally monitor the CTS pin - an input on this UART - to control when
     // the transmitter hardware sends data.
     //
+
+    switch (LineControlPtr->ControlHandShake & SERIAL_DTR_MASK) {
+    case 0:
+        break;
+    
+    case SERIAL_DTR_CONTROL:
+        dtrControl = true;
+        break;
+    
+    case SERIAL_DTR_HANDSHAKE:
+    default:
+        IMX_UART_LOG_ERROR(
+            "Unsupported flow control setting. (LineControlPtr->ControlHandShake = 0x%lx)",
+            LineControlPtr->ControlHandShake);
+
+        return STATUS_NOT_SUPPORTED;
+    }
+
     switch (LineControlPtr->ControlHandShake & SERIAL_OUT_HANDSHAKEMASK) {
     case 0:
 
@@ -3573,15 +3594,6 @@ IMXUartSetHandflow (
     default:
         IMX_UART_LOG_ERROR(
             "Unsupported flow control setting. (LineControlPtr->ControlHandShake = 0x%lx)",
-            LineControlPtr->ControlHandShake);
-
-        return STATUS_NOT_SUPPORTED;
-    }
-
-    if ((LineControlPtr->ControlHandShake & ~SERIAL_OUT_HANDSHAKEMASK) != 0) {
-        IMX_UART_LOG_ERROR(
-            "Unsupported ControlHandShake flag. "
-            "(LineControlPtr->ControlHandShake = 0x%lx)",
             LineControlPtr->ControlHandShake);
 
         return STATUS_NOT_SUPPORTED;
@@ -3664,7 +3676,7 @@ IMXUartSetHandflow (
             DeviceContextPtr->InterruptContextPtr;
 
     //
-    // Update UCR2 under the interrupt spinlock
+    // Update UCR2, UCR3 and UFCR under the interrupt spinlock
     //
     {
         WdfInterruptAcquireLock(interruptContextPtr->WdfInterrupt);
@@ -3676,6 +3688,23 @@ IMXUartSetHandflow (
             interruptContextPtr->Ucr2Copy);
 
         DeviceContextPtr->CurrentFlowReplace = LineControlPtr->FlowReplace;
+
+        if (dtrControl)
+        {
+            interruptContextPtr->UfcrCopy |= IMX_UART_UFCR_DCEDTE;
+            interruptContextPtr->Ucr3Copy |= IMX_UART_UCR3_DSR;
+
+            WRITE_REGISTER_NOFENCE_ULONG(
+                &interruptContextPtr->RegistersPtr->Ufcr,
+                interruptContextPtr->UfcrCopy);
+
+            WRITE_REGISTER_NOFENCE_ULONG(
+                &interruptContextPtr->RegistersPtr->Ucr3,
+                interruptContextPtr->Ucr3Copy);
+
+            DeviceContextPtr->DTEModeSelected = true;
+        }
+
         WdfInterruptReleaseLock(interruptContextPtr->WdfInterrupt);
     }
 
