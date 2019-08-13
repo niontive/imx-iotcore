@@ -3536,11 +3536,9 @@ IMXUartSetHandflow (
     const SERIAL_HANDFLOW* LineControlPtr
     )
 {
-    // NIONTIVEFIX
-    bool dtrControl = false;
-
     ULONG setMask = 0;
     ULONG clearMask = 0;
+    bool enableDTR = false;
 
     //
     // Handle output flow control setting. The transmitter on this UART can
@@ -3553,7 +3551,7 @@ IMXUartSetHandflow (
         break;
     
     case SERIAL_DTR_CONTROL:
-        dtrControl = true;
+        enableDTR = true;
         break;
     
     case SERIAL_DTR_HANDSHAKE:
@@ -3696,8 +3694,7 @@ IMXUartSetHandflow (
 
         DeviceContextPtr->CurrentFlowReplace = LineControlPtr->FlowReplace;
 
-        // NIONTIVEFIX
-        if (dtrControl)
+        if (enableDTR)
         {
             interruptContextPtr->UfcrCopy |= IMX_UART_UFCR_DCEDTE;
             interruptContextPtr->Ucr3Copy |= IMX_UART_UCR3_DSR;
