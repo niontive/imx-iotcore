@@ -3539,8 +3539,8 @@ IMXUartSetHandflow (
     // NIONTIVEFIX
     bool dtrControl = false;
 
-    ULONG SetMask = 0;
-    ULONG ClearMask = 0;
+    ULONG setMask = 0;
+    ULONG clearMask = 0;
 
     //
     // Handle output flow control setting. The transmitter on this UART can
@@ -4433,7 +4433,7 @@ IMXUartIoctlGetDtrRts (
 
     ULONG mask = 0;
 
-    if ((InterruptContextPtr->UfcrCopy & IMX_UART_UFCR_DCEDTE) != 0) {
+    if ((interruptContextPtr->UfcrCopy & IMX_UART_UFCR_DCEDTE) != 0) {
         mask |= SERIAL_DTR_STATE;
     }
 
